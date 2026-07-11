@@ -4,7 +4,11 @@ services:
     container_name: hifumi-vulnerable
     command: sh -c "python init_db.py && python app.py"
     ports:
-      - "5000:5000"
+      # Host port 5050 -> container port 5000. On macOS, host port 5000 is
+      # often already bound by the system AirPlay Receiver service, which
+      # answers with a bare "403 Forbidden" before Docker ever sees the
+      # request. The app itself still runs on port 5000 inside the container.
+      - "5050:5000"
 
   secure:
     build: .
