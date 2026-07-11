@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Hifumi Secure Shop{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+{% if session.get('user') %}
+  <div class="success-banner">
+    ✅ Logged in as {{ session.get('user') }}{% if session.get('role') %} ({{ session.get('role') }}){% endif %}
+  </div>
+{% else %}
+  <div class="alert warn">ゲストとして閲覧中です。ログインしていません。</div>
+{% endif %}
+
+<div class="card-row">
+  <div class="stat-card">
+    <div class="label">Total Customers</div>
+    <div class="value">{{ total_customers }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Open Contacts</div>
+    <div class="value">{{ open_contacts }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Monthly Orders</div>
+    <div class="value">{{ monthly_orders }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Admin User</div>
+    <div class="value" style="font-size:1.1rem;">{{ admin_user }}</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>ショートカット</h2>
+  <p>
+    <a href="{{ url_for('catalog') }}">商品検索</a> ・
+    <a href="{{ url_for('customer_detail') }}?id=1">顧客詳細</a> ・
+    <a href="{{ url_for('track_order') }}?order_id=1">注文照会</a> ・
+    <a href="{{ url_for('contacts') }}">問い合わせ一覧</a> ・
+    <a href="{{ url_for('admin_report') }}">管理者レポート <span class="badge admin-only">管理者のみ</span></a>
+  </p>
+</div>
+
+{% endblock %}

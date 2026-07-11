@@ -1,0 +1,11 @@
+{# secure_notice.html
+   Shared partial used ONLY by secure_app.py. Included on pages where the raw
+   user input looks like it was trying an injection (contains keywords such
+   as UNION / SLEEP / quote characters). It does not change how the query
+   runs -- the placeholder-based query is already safe regardless -- this is
+   purely a teaching aid so the instructor can point at the screen and say
+   "yes, that was an attack attempt, and here it did nothing." #}
+<div class="alert ok" data-autohide>
+  🛡 疑わしい入力（SQLインジェクションらしきパターン）を検知しましたが、
+  プレースホルダ（パラメータ化クエリ）により安全に処理されました。
+</div>

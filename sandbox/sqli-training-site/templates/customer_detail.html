@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Customer Detail - Hifumi Secure Shop{% endblock %}
+{% block page_title %}Customer Detail <span class="badge internal">社内用・顧客情報</span>{% endblock %}
+{% block content %}
+
+{% if suspicious %}{% include "secure_notice.html" %}{% endif %}
+
+<div class="panel">
+  <h2>顧客ID検索</h2>
+  <form method="get" action="{{ url_for('customer_detail') }}">
+    <div class="form-row">
+      <label for="id">Customer ID</label>
+      <input type="text" id="id" name="id" value="{{ raw_id or '' }}">
+    </div>
+    <button type="submit" class="btn">表示</button>
+  </form>
+  <p class="muted">
+    講義用ヒント: <code class="inline">?id=1 AND 1=1</code> と <code class="inline">?id=1 AND 1=2</code>
+    を試して表示の違いを確認してください。
+  </p>
+</div>
+
+{% if error %}
+  <div class="alert danger">クエリエラー: {{ error }}</div>
+{% elif customer %}
+<div class="panel">
+  <h2>顧客詳細</h2>
+  <table class="data-table">
+    <tr><th>ID</th><td>{{ customer[0] }}</td></tr>
+    <tr><th>Name</th><td>{{ customer[1] }}</td></tr>
+    <tr><th>Email</th><td>{{ customer[2] }}</td></tr>
+    <tr><th>Phone</th><td>{{ customer[3] }}</td></tr>
+    <tr><th>Note</th><td>{{ customer[4] }}</td></tr>
+  </table>
+</div>
+{% else %}
+<div class="panel">
+  <p class="muted">該当する顧客が見つかりません（id = {{ raw_id }}）。</p>
+</div>
+{% endif %}
+
+{% endblock %}

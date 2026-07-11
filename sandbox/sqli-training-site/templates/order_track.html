@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Order Tracking - Hifumi Secure Shop{% endblock %}
+{% block page_title %}Order Tracking{% endblock %}
+{% block content %}
+
+{% if suspicious %}{% include "secure_notice.html" %}{% endif %}
+
+<div class="panel">
+  <h2>注文照会</h2>
+  <form method="get" action="{{ url_for('track_order') }}">
+    <div class="form-row">
+      <label for="order_id">Order ID</label>
+      <input type="text" id="order_id" name="order_id" value="{{ raw_order_id or '' }}">
+    </div>
+    <button type="submit" class="btn">照会</button>
+  </form>
+  <p class="muted">
+    講義用ヒント（発展）: <code class="inline">?order_id=1 AND 1=1</code> /
+    <code class="inline">?order_id=1 AND 1=2</code> や、
+    SLEEP相当のキーワードを含む入力で応答時間の違いを確認できます。
+  </p>
+</div>
+
+{% if delayed %}
+  <div class="alert warn">
+    ⏱ 応答が約3秒遅延しました（SQLiteにはSLEEP()が無いため、講義用の疑似シミュレーションです）。
+  </div>
+{% endif %}
+
+{% if error %}
+  <div class="alert danger">クエリエラー: {{ error }}</div>
+{% elif order %}
+<div class="panel">
+  <h2>注文詳細</h2>
+  <table class="data-table">
+    <tr><th>ID</th><td>{{ order[0] }}</td></tr>
+    <tr><th>Tracking Code</th><td>{{ order[1] }}</td></tr>
+    <tr><th>Status</th><td>{{ order[2] }}</td></tr>
+  </table>
+</div>
+{% else %}
+<div class="panel">
+  <p class="muted">該当する注文が見つかりません（order_id = {{ raw_order_id }}）。</p>
+</div>
+{% endif %}
+
+{% endblock %}

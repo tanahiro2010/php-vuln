@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Hifumi Secure Shop{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        Hifumi Secure Shop
+        <small>Internal CRM / EC Admin (Training)</small>
+      </div>
+      <nav>
+        <a href="{{ url_for('dashboard') }}">📊 Dashboard</a>
+        <a href="{{ url_for('catalog') }}">🛒 Product Catalog</a>
+        <a href="{{ url_for('customer_detail') }}?id=1">👤 Customers <span class="badge internal">社内用</span></a>
+        <a href="{{ url_for('track_order') }}?order_id=1">📦 Order Tracking</a>
+        <a href="{{ url_for('contacts') }}">✉️ Contacts <span class="badge internal">顧客情報</span></a>
+        <a href="{{ url_for('admin_report') }}">📈 Admin Report <span class="badge admin-only">管理者のみ</span></a>
+        {% if session.get('user') %}
+        <a href="{{ url_for('logout') }}">🚪 Logout ({{ session.get('user') }})</a>
+        {% else %}
+        <a href="{{ url_for('login') }}">🔑 Login</a>
+        {% endif %}
+      </nav>
+    </aside>
+
+    <div class="main-col">
+      <div class="topbar">
+        <div class="title">{% block page_title %}Hifumi Secure Shop{% endblock %}</div>
+        <span class="mode-badge {{ MODE_CLASS }}">{{ MODE_LABEL }}</span>
+      </div>
+
+      <div class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert {{ category }}" data-autohide>{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </div>
+
+      <footer class="app-footer">
+        Hifumi Secure Shop &mdash; SQLインジェクション講義用のローカル教材です。実在サイトへの攻撃には使用しないでください。
+      </footer>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+services:
+  vulnerable:
+    build: .
+    container_name: hifumi-vulnerable
+    command: sh -c "python init_db.py && python app.py"
+    ports:
+      - "5000:5000"
+
+  secure:
+    build: .
+    container_name: hifumi-secure
+    command: sh -c "python init_db.py && python secure_app.py"
+    ports:
+      - "5010:5010"

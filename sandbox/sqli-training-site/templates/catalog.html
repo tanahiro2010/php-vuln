@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Product Catalog - Hifumi Secure Shop{% endblock %}
+{% block page_title %}Product Catalog{% endblock %}
+{% block content %}
+
+{% if suspicious %}{% include "secure_notice.html" %}{% endif %}
+
+{% if flagged %}
+  <div class="alert danger">
+    🚨 検索クエリに <code class="inline">UNION</code> が含まれています。想定外のテーブルの結果が混ざっている可能性があります。
+  </div>
+{% endif %}
+
+{% if error %}
+  <div class="alert danger">クエリエラー: {{ error }}</div>
+{% endif %}
+
+<div class="panel">
+  <h2>商品検索</h2>
+  <form method="get" action="{{ url_for('catalog') }}">
+    <div class="form-row">
+      <label for="q">商品名で検索</label>
+      <input type="search" id="q" name="q" value="{{ q or '' }}" placeholder="例: Keyboard">
+    </div>
+    <button type="submit" class="btn">検索</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>検索結果</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Price</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="{{ 'leaked-row' if flagged else '' }}">
+        <td>{{ row[0] }}</td>
+        <td>{{ row[1] }}</td>
+        <td>{{ row[2] }}</td>
+        <td>{% if flagged %}<span class="badge leaked">LEAKED</span>{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">該当する商品がありません。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

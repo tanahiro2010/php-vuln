@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Login - Hifumi Secure Shop{% endblock %}
+{% block page_title %}Login{% endblock %}
+{% block content %}
+
+{% if suspicious %}{% include "secure_notice.html" %}{% endif %}
+
+<div class="panel" style="max-width:420px;">
+  <h2>ログイン</h2>
+  {% if login_error %}
+    <div class="alert danger">{{ login_error }}</div>
+  {% endif %}
+  <form method="post" action="{{ url_for('login') }}">
+    <div class="form-row">
+      <label for="username">ユーザー名</label>
+      <input type="text" id="username" name="username" autocomplete="off" value="{{ last_username or '' }}">
+    </div>
+    <div class="form-row">
+      <label for="password">パスワード</label>
+      <input type="password" id="password" name="password">
+    </div>
+    <button type="submit" class="btn">ログイン</button>
+  </form>
+  <p class="muted" style="margin-top:14px;">
+    デモ用アカウント: admin / tanaka / sato（パスワードは講義資料参照）
+  </p>
+</div>
+
+<div class="panel" style="max-width:420px;">
+  <h2>新規ユーザー登録</h2>
+  <p class="muted">登録は安全に保存されます（プレースホルダ使用）。このあと管理者レポート画面で何が起きるか確認してください。</p>
+  {% if register_message %}
+    <div class="alert info">{{ register_message }}</div>
+  {% endif %}
+  <form method="post" action="{{ url_for('register') }}">
+    <div class="form-row">
+      <label for="reg_username">ユーザー名</label>
+      <input type="text" id="reg_username" name="username" autocomplete="off">
+    </div>
+    <div class="form-row">
+      <label for="reg_password">パスワード</label>
+      <input type="password" id="reg_password" name="password">
+    </div>
+    <button type="submit" class="btn secondary">登録する</button>
+  </form>
+</div>
+
+{% endblock %}

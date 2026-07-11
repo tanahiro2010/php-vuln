@@ -1,0 +1,268 @@
+/* Hifumi Secure Shop -- training UI stylesheet.
+   Kept intentionally simple (no build step), but styled enough to read as
+   a real internal CRM/EC-admin tool during a live lecture. */
+
+:root {
+  --bg: #f2f4f7;
+  --panel: #ffffff;
+  --border: #e1e5ea;
+  --text: #1f2933;
+  --muted: #6b7785;
+  --accent: #2f6fed;
+  --sidebar-bg: #14213d;
+  --sidebar-text: #c9d3e6;
+  --sidebar-active: #1f3a68;
+  --danger: #c0392b;
+  --danger-bg: #fdecea;
+  --ok: #1f8a55;
+  --ok-bg: #e8f7ef;
+  --warn: #b8860b;
+  --warn-bg: #fff8e1;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---- sidebar ---- */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .brand {
+  padding: 0 20px 20px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 10px;
+}
+
+.sidebar .brand small {
+  display: block;
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--sidebar-text);
+  opacity: 0.7;
+}
+
+.sidebar nav a {
+  display: block;
+  padding: 10px 20px;
+  color: var(--sidebar-text);
+  font-size: 0.92rem;
+}
+
+.sidebar nav a:hover {
+  background: var(--sidebar-active);
+  text-decoration: none;
+}
+
+/* ---- main column ---- */
+.main-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+}
+
+.topbar .title { font-size: 1.05rem; font-weight: 600; }
+
+.mode-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.mode-badge.vulnerable {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.mode-badge.secure {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border: 1px solid var(--ok);
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+}
+
+footer.app-footer {
+  padding: 14px 24px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+
+/* ---- generic panels/cards ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+
+.card-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.stat-card .label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-card .value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+/* ---- forms ---- */
+.form-row { margin-bottom: 14px; }
+.form-row label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: var(--muted);
+}
+.form-row input[type=text],
+.form-row input[type=password],
+.form-row input[type=search] {
+  width: 100%;
+  max-width: 360px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.btn:hover { opacity: 0.92; text-decoration: none; }
+.btn.secondary { background: var(--muted); }
+
+/* ---- tables ---- */
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+table.data-table th, table.data-table td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+table.data-table th {
+  background: #f8f9fb;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+tr.leaked-row {
+  background: var(--danger-bg) !important;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.badge.leaked { background: var(--danger); color: #fff; }
+.badge.internal { background: #eef1f6; color: var(--muted); border: 1px solid var(--border); }
+.badge.admin-only { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+
+/* ---- alerts / notices ---- */
+.alert {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.alert.danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); }
+.alert.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
+.alert.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+.alert.info { background: #eef2ff; color: var(--accent); border: 1px solid var(--accent); }
+
+.success-banner {
+  background: var(--ok-bg);
+  border: 1px solid var(--ok);
+  color: var(--ok);
+  padding: 14px 18px;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.muted { color: var(--muted); font-size: 0.85rem; }
+code.inline { background: #f1f3f6; padding: 1px 6px; border-radius: 4px; font-size: 0.85em; }

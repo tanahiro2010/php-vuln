@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Contacts - Hifumi Secure Shop{% endblock %}
+{% block page_title %}Contacts <span class="badge internal">顧客情報</span>{% endblock %}
+{% block content %}
+
+{% if suspicious %}{% include "secure_notice.html" %}{% endif %}
+
+{% if flagged %}
+  <div class="alert danger">
+    🚨 検索クエリに <code class="inline">UNION</code> が含まれています。本来非表示の社内メモが混ざっている可能性があります。
+  </div>
+{% endif %}
+
+{% if error %}
+  <div class="alert danger">クエリエラー: {{ error }}</div>
+{% endif %}
+
+<div class="panel">
+  <h2>問い合わせ検索</h2>
+  <form method="get" action="{{ url_for('contacts') }}">
+    <div class="form-row">
+      <label for="q">問い合わせ内容で検索</label>
+      <input type="search" id="q" name="q" value="{{ q or '' }}" placeholder="例: invoice">
+    </div>
+    <button type="submit" class="btn">検索</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>問い合わせ一覧</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>ID</th><th>Customer</th><th>Email</th><th>Message</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="{{ 'leaked-row' if flagged else '' }}">
+        <td>{{ row[0] }}</td>
+        <td>{{ row[1] }}</td>
+        <td>{{ row[2] }}</td>
+        <td>{{ row[3] }}</td>
+        <td>{% if flagged %}<span class="badge leaked">LEAKED</span>{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">該当する問い合わせがありません。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if flagged %}
+    <p class="muted">
+      ※ 4列目は本来 <code class="inline">message</code>（問い合わせ内容）ですが、
+      UNION攻撃時は <code class="inline">internal_memo</code>（社内メモ）が混入して表示されます。
+    </p>
+  {% endif %}
+</div>
+
+{% endblock %}
