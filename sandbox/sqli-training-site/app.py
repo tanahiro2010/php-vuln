@@ -20,6 +20,7 @@ Then open http://127.0.0.1:5000
 import os
 import sqlite3
 import time
+from functools import wraps
 
 from flask import Flask, request, session, redirect, url_for, render_template, flash
 
@@ -37,6 +38,29 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if "user" not in session:
+            flash("ログインが必要です。", "warn")
+            return redirect(url_for("login"))
+        return view(*args, **kwargs)
+    return wrapper
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if "user" not in session:
+            flash("ログインが必要です。", "warn")
+            return redirect(url_for("login"))
+        if session.get("role") != "admin":
+            flash("この画面は管理者専用です。", "warn")
+            return redirect(url_for("dashboard"))
+        return view(*args, **kwargs)
+    return wrapper
 
 
 @app.context_processor
@@ -130,31 +154,50 @@ def logout():
 
 
 # ---------------------------------------------------------------------------
-# Scenario 7 (part 1): registration -- saved SAFELY on purpose.
-# The point of the lesson is that this step looks harmless.
+# Scenario 7 (part 1): registration -- gated by an invite token.
+# The token check is INTENTIONALLY vulnerable (string-concatenated SQL) so
+# an attacker can bypass it. The INSERT itself uses a safe placeholder --
+# the point of the second-order lesson is that even a "safely stored" value
+# reintroduces SQLi later when it's read back and concatenated.
 # ---------------------------------------------------------------------------
 @app.route("/register", methods=["POST"])
 def register():
+    token = request.form.get("token", "")
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
-    if not username or not password:
-        flash("ユーザー名とパスワードを入力してください。", "warn")
+    if not username or not password or not token:
+        flash("招待コード・ユーザー名・パスワードをすべて入力してください。", "warn")
         return redirect(url_for("login"))
 
     db = get_db()
+    try:
+        # WARNING: This query is intentionally vulnerable for training purposes.
+        # A payload like ' OR '1'='1' -- in the token field bypasses the check.
+        token_query = (
+            f"SELECT 1 FROM invite_tokens WHERE token = '{token}' AND used = 0"
+        )
+        row = db.execute(token_query).fetchone()
+    except Exception as e:
+        # Broad on purpose: string-concatenated SQL can raise more than just
+        # sqlite3.Error (e.g. a NUL byte raises ValueError).
+        flash(f"クエリエラー: {e}", "danger")
+        return redirect(url_for("login"))
+
+    if not row:
+        flash("招待コードが無効です。", "danger")
+        return redirect(url_for("login"))
+
     db.execute(
         "INSERT INTO users (username, password, role, email) VALUES (?, ?, 'staff', ?)",
         (username, password, f"{username}@example.local"),
     )
     db.commit()
-    flash(
-        f"ユーザー '{username}' を登録しました。次に管理者レポート画面を開いてみてください。",
-        "info",
-    )
+    flash(f"ユーザー '{username}' を登録しました。", "info")
     return redirect(url_for("login"))
 
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
     db = get_db()
     total_customers = db.execute("SELECT COUNT(*) FROM customers").fetchone()[0]
@@ -175,6 +218,7 @@ def dashboard():
 # Scenario 3: UNION-based leak of customer data through product search
 # ---------------------------------------------------------------------------
 @app.route("/catalog")
+@login_required
 def catalog():
     q = request.args.get("q", "")
     # Flag based on the raw input, not on inspecting result columns: a real
@@ -200,6 +244,7 @@ def catalog():
 # Scenario 4: boolean-based blind SQLi via a numeric id parameter
 # ---------------------------------------------------------------------------
 @app.route("/customer")
+@login_required
 def customer_detail():
     raw_id = request.args.get("id", "1")
     db = get_db()
@@ -224,6 +269,7 @@ def customer_detail():
 # Scenario 5: pseudo time-based blind SQLi
 # ---------------------------------------------------------------------------
 @app.route("/track")
+@login_required
 def track_order():
     raw_order_id = request.args.get("order_id", "1")
 
@@ -257,6 +303,7 @@ def track_order():
 # Scenario 6: UNION-based leak of internal_memo through contact search
 # ---------------------------------------------------------------------------
 @app.route("/contacts")
+@login_required
 def contacts():
     q = request.args.get("q", "")
     flagged = "union" in q.lower()
@@ -285,6 +332,7 @@ KNOWN_STATUSES = {"shipped", "preparing", "delayed"}
 
 
 @app.route("/admin/report")
+@admin_required
 def admin_report():
     db = get_db()
     usernames = [r["username"] for r in db.execute("SELECT username FROM users").fetchall()]

@@ -19,6 +19,7 @@ Then open http://127.0.0.1:5010
 
 import os
 import sqlite3
+from functools import wraps
 
 from flask import Flask, request, session, redirect, url_for, render_template, flash
 
@@ -45,6 +46,29 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if "user" not in session:
+            flash("ログインが必要です。", "warn")
+            return redirect(url_for("login"))
+        return view(*args, **kwargs)
+    return wrapper
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if "user" not in session:
+            flash("ログインが必要です。", "warn")
+            return redirect(url_for("login"))
+        if session.get("role") != "admin":
+            flash("この画面は管理者専用です。", "warn")
+            return redirect(url_for("dashboard"))
+        return view(*args, **kwargs)
+    return wrapper
 
 
 @app.context_processor
@@ -120,30 +144,41 @@ def logout():
 
 
 # ---------------------------------------------------------------------------
-# Scenario 7 (part 1): registration -- parameterized in both versions.
+# Scenario 7 (part 1, fixed): registration -- token check is parameterized,
+# so the injection payload becomes a literal string and simply matches no
+# invitation. The INSERT was parameterized in both versions already.
 # ---------------------------------------------------------------------------
 @app.route("/register", methods=["POST"])
 def register():
+    token = request.form.get("token", "")
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
-    if not username or not password:
-        flash("ユーザー名とパスワードを入力してください。", "warn")
+    if not username or not password or not token:
+        flash("招待コード・ユーザー名・パスワードをすべて入力してください。", "warn")
         return redirect(url_for("login"))
 
     db = get_db()
+    # FIX: parameterized token check -- ' OR '1'='1' -- becomes a literal
+    # search string that does not match any real token.
+    row = db.execute(
+        "SELECT 1 FROM invite_tokens WHERE token = ? AND used = 0",
+        (token,),
+    ).fetchone()
+    if not row:
+        flash("招待コードが無効です。", "danger")
+        return redirect(url_for("login"))
+
     db.execute(
         "INSERT INTO users (username, password, role, email) VALUES (?, ?, 'staff', ?)",
         (username, password, f"{username}@example.local"),
     )
     db.commit()
-    flash(
-        f"ユーザー '{username}' を登録しました。管理者レポート画面でも安全に処理されることを確認してください。",
-        "info",
-    )
+    flash(f"ユーザー '{username}' を登録しました。", "info")
     return redirect(url_for("login"))
 
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
     db = get_db()
     total_customers = db.execute("SELECT COUNT(*) FROM customers").fetchone()[0]
@@ -164,6 +199,7 @@ def dashboard():
 # Scenario 3 (fixed): parameterized product search, no UNION leak possible
 # ---------------------------------------------------------------------------
 @app.route("/catalog")
+@login_required
 def catalog():
     q = request.args.get("q", "")
     suspicious = looks_suspicious(q)
@@ -182,6 +218,7 @@ def catalog():
 # Scenario 4 (fixed): validated integer id + parameterized query
 # ---------------------------------------------------------------------------
 @app.route("/customer")
+@login_required
 def customer_detail():
     raw_id = request.args.get("id", "1")
     suspicious = looks_suspicious(raw_id) or not raw_id.strip().lstrip("-").isdigit()
@@ -210,6 +247,7 @@ def customer_detail():
 # Scenario 5 (fixed): validated integer order_id, no delay logic at all
 # ---------------------------------------------------------------------------
 @app.route("/track")
+@login_required
 def track_order():
     raw_order_id = request.args.get("order_id", "1")
     suspicious = looks_suspicious(raw_order_id) or not raw_order_id.strip().isdigit()
@@ -245,6 +283,7 @@ def track_order():
 # Scenario 6 (fixed): parameterized contact search, internal_memo stays hidden
 # ---------------------------------------------------------------------------
 @app.route("/contacts")
+@login_required
 def contacts():
     q = request.args.get("q", "")
     suspicious = looks_suspicious(q)
@@ -266,6 +305,7 @@ def contacts():
 # every place a stored value is later used in SQL needs the same care.
 # ---------------------------------------------------------------------------
 @app.route("/admin/report")
+@admin_required
 def admin_report():
     db = get_db()
     usernames = [r["username"] for r in db.execute("SELECT username FROM users").fetchall()]

@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS contacts;
+DROP TABLE IF EXISTS invite_tokens;
 
 CREATE TABLE users (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,6 +33,12 @@ CREATE TABLE users (
     password TEXT NOT NULL,
     role     TEXT NOT NULL,
     email    TEXT NOT NULL
+);
+
+CREATE TABLE invite_tokens (
+    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT NOT NULL,
+    used  INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE products (
@@ -100,6 +107,14 @@ SEED_CONTACTS = [
     (3, "Chika Test", "chika@example.local", "Delivery date question.", "Demo memo"),
 ]
 
+# Fictitious invitation tokens. In this training app the token is checked
+# against invite_tokens via a vulnerable query in app.py (fixed in
+# secure_app.py). No token value here corresponds to any real system.
+SEED_INVITE_TOKENS = [
+    (1, "INVITE-2026-STAFF-A1", 0),
+    (2, "INVITE-2026-STAFF-A2", 0),
+]
+
 
 def main():
     if os.path.exists(DB_PATH):
@@ -127,6 +142,10 @@ def main():
         conn.executemany(
             "INSERT INTO contacts (id, customer_name, email, message, internal_memo) VALUES (?, ?, ?, ?, ?)",
             SEED_CONTACTS,
+        )
+        conn.executemany(
+            "INSERT INTO invite_tokens (id, token, used) VALUES (?, ?, ?)",
+            SEED_INVITE_TOKENS,
         )
         conn.commit()
     finally:
