@@ -11,7 +11,7 @@
     <aside class="sidebar">
       <div class="brand">
         Hifumi Secure Shop
-        <small>Internal CRM / EC Admin (Training)</small>
+        <small>Internal CRM / EC Admin</small>
       </div>
       <nav>
         <a href="{{ url_for('dashboard') }}">📊 Dashboard</a>
@@ -31,7 +31,6 @@
     <div class="main-col">
       <div class="topbar">
         <div class="title">{% block page_title %}Hifumi Secure Shop{% endblock %}</div>
-        <span class="mode-badge {{ MODE_CLASS }}">{{ MODE_LABEL }}</span>
       </div>
 
       <div class="content">
@@ -47,7 +46,7 @@
       </div>
 
       <footer class="app-footer">
-        Hifumi Secure Shop &mdash; SQLインジェクション講義用のローカル教材です。実在サイトへの攻撃には使用しないでください。
+        &copy; 2026 Hifumi Secure Shop
       </footer>
     </div>
   </div>

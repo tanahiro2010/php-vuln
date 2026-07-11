@@ -3,11 +3,6 @@
 {% block page_title %}Admin Report <span class="badge admin-only">管理者のみ</span>{% endblock %}
 {% block content %}
 
-<div class="alert info">
-  このレポートは <code class="inline">/register</code> で登録されたユーザー名を、顧客名とみなして
-  最新の注文ステータスを引き当てます。登録時ではなく、このレポートを開いた時にクエリが組み立てられます。
-</div>
-
 {% if error %}
   <div class="alert danger">クエリエラー: {{ error }}</div>
 {% endif %}
@@ -20,23 +15,15 @@
     </thead>
     <tbody>
       {% for row in rows %}
-      <tr class="{{ 'leaked-row' if row.leaked else '' }}">
+      <tr>
         <td>{{ row.username }}</td>
-        <td>
-          {{ row.activity }}
-          {% if row.leaked %}<span class="badge leaked">LEAKED</span>{% endif %}
-        </td>
+        <td>{{ row.activity }}</td>
       </tr>
       {% else %}
       <tr><td colspan="2" class="muted">登録済みユーザーがいません。</td></tr>
       {% endfor %}
     </tbody>
   </table>
-  <p class="muted">
-    講義用ヒント: <code class="inline">/register</code> で
-    <code class="inline">nobody' UNION SELECT password FROM users WHERE username='admin' --</code>
-    のようなユーザー名を登録してから、このページを再読み込みしてください。
-  </p>
 </div>
 
 {% endblock %}

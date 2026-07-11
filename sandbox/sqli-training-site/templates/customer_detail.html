@@ -3,8 +3,6 @@
 {% block page_title %}Customer Detail <span class="badge internal">社内用・顧客情報</span>{% endblock %}
 {% block content %}
 
-{% if suspicious %}{% include "secure_notice.html" %}{% endif %}
-
 <div class="panel">
   <h2>顧客ID検索</h2>
   <form method="get" action="{{ url_for('customer_detail') }}">
@@ -14,10 +12,6 @@
     </div>
     <button type="submit" class="btn">表示</button>
   </form>
-  <p class="muted">
-    講義用ヒント: <code class="inline">?id=1 AND 1=1</code> と <code class="inline">?id=1 AND 1=2</code>
-    を試して表示の違いを確認してください。
-  </p>
 </div>
 
 {% if error %}
