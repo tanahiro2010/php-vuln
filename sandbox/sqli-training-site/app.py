@@ -324,4 +324,7 @@ if __name__ == "__main__":
     # this app teaches, and out of scope for a training tool. Errors are
     # handled explicitly instead (see the try/except blocks and the
     # errorhandler functions above).
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    # NOTE: host="0.0.0.0" so Docker's published port can actually reach this
+    # process (binding to 127.0.0.1 only accepts connections from inside the
+    # container's own network namespace, which breaks `docker compose up`).
+    app.run(host="0.0.0.0", port=5000, debug=False)
