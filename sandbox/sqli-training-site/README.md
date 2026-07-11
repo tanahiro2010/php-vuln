@@ -72,10 +72,12 @@ python secure_app.py
 docker compose up --build
 ```
 
-- 脆弱版: `http://127.0.0.1:5000`
+- 脆弱版: `http://127.0.0.1:5050`（コンテナ内部は5000番のまま。下記の注意を参照）
 - 修正版: `http://127.0.0.1:5010`
 
 各コンテナは起動時にそれぞれ独立した `database.db` を作り直すので、Docker版では2つのアプリはDBを共有しません（起動のたびにクリーンな状態からデモできます）。
+
+**macOSでの注意（AirPlay Receiverとのポート衝突）**: macOSは標準で「AirPlay Receiver」機能がホストの5000番ポート（と7000番）を掴んでいることがあり、`docker compose up` が `bind: address already in use` で失敗したり、アクセスしても中身のない `403 Forbidden`（`Server: AirTunes/...`）が返ってくることがあります。これを避けるため、`docker-compose.yml` では脆弱版のホスト側ポートを `5050` に変更しています。ローカルで直接 `python app.py` を実行する場合（ポート5000）でも同じ衝突が起き得ます。その場合はシステム設定 → 一般 → AirDropとHandoff → 「AirPlay Receiver」をオフにしてください。
 
 ## 4. 講義用デモシナリオ
 
