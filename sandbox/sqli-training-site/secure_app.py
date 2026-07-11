@@ -286,4 +286,5 @@ def admin_report():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5010, debug=True)
+    # NOTE: debug=False intentionally -- see the matching comment in app.py.
+    app.run(host="127.0.0.1", port=5010, debug=False)

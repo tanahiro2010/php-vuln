@@ -92,7 +92,10 @@ def login():
         #   username = admin' OR '1'='1' --
         query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
         user = db.execute(query).fetchone()
-    except sqlite3.Error as e:
+    except Exception as e:
+        # Broad on purpose: string-concatenated SQL can raise more than just
+        # sqlite3.Error (e.g. a NUL byte in the input raises ValueError), and
+        # this app must never crash into an unhandled 500 during a demo.
         login_error = f"クエリエラー: {e}"
 
     if user:
@@ -107,7 +110,10 @@ def login():
         try:
             exists_query = f"SELECT 1 FROM users WHERE username = '{username}'"
             exists = db.execute(exists_query).fetchone()
-        except sqlite3.Error as e:
+        except Exception as e:
+            # Broad on purpose: string-concatenated SQL can raise more than
+            # just sqlite3.Error (e.g. a NUL byte raises ValueError), and
+            # this app must never crash into an unhandled 500 during a demo.
             exists = None
             login_error = f"クエリエラー: {e}"
         if login_error is None:
@@ -182,7 +188,10 @@ def catalog():
         # Do not use this style in production.
         query = f"SELECT id, name, price FROM products WHERE name LIKE '%{q}%'"
         rows = db.execute(query).fetchall()
-    except sqlite3.Error as e:
+    except Exception as e:
+        # Broad on purpose: string-concatenated SQL can raise more than just
+        # sqlite3.Error (e.g. a NUL byte in the input raises ValueError), and
+        # this app must never crash into an unhandled 500 during a demo.
         error = f"{e}"
     return render_template("catalog.html", q=q, rows=rows, flagged=flagged, error=error)
 
@@ -203,7 +212,10 @@ def customer_detail():
         # the WHERE clause itself (classic boolean-based blind SQLi).
         query = f"SELECT id, name, email, phone, note FROM customers WHERE id = {raw_id}"
         customer = db.execute(query).fetchone()
-    except sqlite3.Error as e:
+    except Exception as e:
+        # Broad on purpose: string-concatenated SQL can raise more than just
+        # sqlite3.Error (e.g. a NUL byte in the input raises ValueError), and
+        # this app must never crash into an unhandled 500 during a demo.
         error = f"{e}"
     return render_template("customer_detail.html", raw_id=raw_id, customer=customer, error=error)
 
@@ -231,7 +243,10 @@ def track_order():
         # WARNING: This query is intentionally vulnerable for training purposes.
         query = f"SELECT id, tracking_code, status FROM orders WHERE id = {raw_order_id}"
         order = db.execute(query).fetchone()
-    except sqlite3.Error as e:
+    except Exception as e:
+        # Broad on purpose: string-concatenated SQL can raise more than just
+        # sqlite3.Error (e.g. a NUL byte in the input raises ValueError), and
+        # this app must never crash into an unhandled 500 during a demo.
         error = f"{e}"
     return render_template(
         "order_track.html", raw_order_id=raw_order_id, order=order, error=error, delayed=delayed
@@ -253,7 +268,10 @@ def contacts():
         # Do not use this style in production.
         query = f"SELECT id, customer_name, email, message FROM contacts WHERE message LIKE '%{q}%'"
         rows = db.execute(query).fetchall()
-    except sqlite3.Error as e:
+    except Exception as e:
+        # Broad on purpose: string-concatenated SQL can raise more than just
+        # sqlite3.Error (e.g. a NUL byte in the input raises ValueError), and
+        # this app must never crash into an unhandled 500 during a demo.
         error = f"{e}"
     return render_template("contact.html", q=q, rows=rows, flagged=flagged, error=error)
 
@@ -290,11 +308,20 @@ def admin_report():
             if row is not None:
                 activity = row["activity"]
                 leaked = activity not in KNOWN_STATUSES
-        except sqlite3.Error as e:
+        except Exception as e:
+            # Broad on purpose: string-concatenated SQL can raise more than
+            # just sqlite3.Error (e.g. a NUL byte raises ValueError), and
+            # this app must never crash into an unhandled 500 during a demo.
             activity = f"クエリエラー: {e}"
         rows.append({"username": uname, "activity": activity, "leaked": leaked})
     return render_template("report.html", rows=rows, error=None)
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    # NOTE: debug=False intentionally. Werkzeug's interactive debugger console
+    # (enabled by debug=True) is itself a remote-code-execution surface if an
+    # unhandled exception is ever reached -- unrelated to the SQLi lessons
+    # this app teaches, and out of scope for a training tool. Errors are
+    # handled explicitly instead (see the try/except blocks and the
+    # errorhandler functions above).
+    app.run(host="127.0.0.1", port=5000, debug=False)
