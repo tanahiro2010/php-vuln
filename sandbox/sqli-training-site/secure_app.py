@@ -287,4 +287,5 @@ def admin_report():
 
 if __name__ == "__main__":
     # NOTE: debug=False intentionally -- see the matching comment in app.py.
-    app.run(host="127.0.0.1", port=5010, debug=False)
+    # host="0.0.0.0" so Docker's published port can reach this process.
+    app.run(host="0.0.0.0", port=5010, debug=False)
