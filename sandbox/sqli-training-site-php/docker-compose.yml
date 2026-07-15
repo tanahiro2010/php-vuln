@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: hifumi-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: training-root-password
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - ./mysql/conf.d:/etc/mysql/conf.d:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -ptraining-root-password"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  vulnerable:
+    build: .
+    container_name: hifumi-vulnerable-php
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: training_user
+      DB_PASS: training-demo-password
+      DB_NAME: hifumi_vulnerable
+      SESSION_COOKIE_NAME: hifumi_vuln_session
+      DOCROOT: /var/www/training/docroot/vulnerable
+    command: ["sh", "-c", "php /var/www/training/init_db.php hifumi_vulnerable && apache2-foreground"]
+    ports:
+      # macOS AirPlay Receiver often steals :5000, so map to :5050 on
+      # the host. Container listens on 80 (Apache default).
+      - "5050:80"
+
+  secure:
+    build: .
+    container_name: hifumi-secure-php
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: training_user
+      DB_PASS: training-demo-password
+      DB_NAME: hifumi_secure
+      SESSION_COOKIE_NAME: hifumi_secure_session
+      DOCROOT: /var/www/training/docroot/secure
+    command: ["sh", "-c", "php /var/www/training/init_db.php hifumi_secure && apache2-foreground"]
+    ports:
+      - "5010:80"
