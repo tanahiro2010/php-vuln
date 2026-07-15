@@ -1,0 +1,28 @@
+# Hifumi Secure Shop -- defense in depth for rental/shared hosting.
+#
+# If this entire directory tree ends up mapped as a domain's document
+# root (common on FTP-only hosting where there's no per-folder control),
+# this file blocks direct web access to anything that is NOT meant to be
+# public: DB credentials, the CLI initializer, MySQL/Docker config, and
+# docs. The actual apps live in vuln/ and secure/, which have their own
+# .htaccess for routing.
+#
+# Under Docker, Apache's vhost uses `AllowOverride None`, so this file is
+# simply ignored there -- it has no effect on the Docker deployment.
+
+<FilesMatch "^(config\.php|init_db\.php|docker-compose\.yml|Dockerfile|README\.md)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(lib|mysql|apache)/ - [F,L]
+</IfModule>
+
+Options -Indexes

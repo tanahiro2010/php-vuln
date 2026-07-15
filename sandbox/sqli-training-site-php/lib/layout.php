@@ -24,7 +24,7 @@ function render_layout(string $page_title, string $inner_html): void
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= h($page_title) ?> - Hifumi Secure Shop</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <div class="app-shell">
@@ -66,7 +66,7 @@ function render_layout(string $page_title, string $inner_html): void
       </footer>
     </div>
   </div>
-  <script src="/app.js"></script>
+  <script src="/static/app.js"></script>
 </body>
 </html><?php
 }

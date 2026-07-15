@@ -9,6 +9,15 @@
  * used identically by the secure version.
  */
 
+function training_config(): array
+{
+    static $config = null;
+    if ($config === null) {
+        $config = require __DIR__ . '/../config.php';
+    }
+    return $config;
+}
+
 function training_pdo(): PDO
 {
     static $pdo = null;
@@ -16,7 +25,7 @@ function training_pdo(): PDO
         return $pdo;
     }
 
-    $config = require __DIR__ . '/../config.php';
+    $config = training_config();
     $dsn = sprintf(
         'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
         $config['host'],

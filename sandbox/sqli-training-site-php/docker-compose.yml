@@ -28,7 +28,7 @@ services:
       DB_PASS: training-demo-password
       DB_NAME: hifumi_vulnerable
       SESSION_COOKIE_NAME: hifumi_vuln_session
-      DOCROOT: /var/www/training/docroot/vulnerable
+      DOCROOT: /var/www/training/vuln
     command: ["sh", "-c", "php /var/www/training/init_db.php hifumi_vulnerable && apache2-foreground"]
     ports:
       # macOS AirPlay Receiver often steals :5000, so map to :5050 on
@@ -48,7 +48,7 @@ services:
       DB_PASS: training-demo-password
       DB_NAME: hifumi_secure
       SESSION_COOKIE_NAME: hifumi_secure_session
-      DOCROOT: /var/www/training/docroot/secure
+      DOCROOT: /var/www/training/secure
     command: ["sh", "-c", "php /var/www/training/init_db.php hifumi_secure && apache2-foreground"]
     ports:
       - "5010:80"

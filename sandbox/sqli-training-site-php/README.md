@@ -49,23 +49,31 @@ docker compose up --build
 
 ```
 sandbox/sqli-training-site-php/
-├── docker-compose.yml       # mysql + vulnerable + secure の 3 サービス
-├── Dockerfile               # php:8.2-apache + PDO MySQL
-├── config.php               # DB 接続設定（env で上書き可能）
-├── init_db.php              # CLI: スキーマ + シードを流し込む
+├── docker-compose.yml       # mysql + vulnerable + secure の 3 サービス（Docker用）
+├── Dockerfile               # php:8.2-apache + PDO MySQL（Docker用）
+├── .htaccess                # config.php/init_db.php/lib等への直アクセスを遮断（レンタルサーバー用の保険）
+├── config.php               # DB 接続設定（env で上書き可能。レンタルサーバーでは直接値を編集）
+├── init_db.php              # CLI版初期化（Docker/SSH がある環境向け）
 ├── mysql/
-│   ├── init/01-init.sql     # 初回起動時に走る DB/user 作成 SQL
-│   └── conf.d/my.cnf        # MySQL サーバ設定（utf8mb4 等）
+│   ├── init/01-init.sql     # 初回起動時に走る DB/user 作成 SQL（Docker用）
+│   └── conf.d/my.cnf        # MySQL サーバ設定（utf8mb4 等。Docker用）
 ├── apache/
-│   └── training.conf        # VirtualHost 定義（DOCROOT で切替）
-├── static/                  # 両アプリ共有の静的アセット（Alias で公開）
+│   └── training.conf        # VirtualHost 定義（Docker用、DOCROOT で切替）
+├── static/                  # 両アプリ共有の静的アセット（/static/ で公開）
 │   ├── style.css
 │   └── app.js
-├── docroot/                 # Apache DocumentRoot をここに切替
-│   ├── vulnerable/index.php # → require ../../app_vulnerable.php
-│   └── secure/index.php     # → require ../../app_secure.php
+├── vuln/                    # 脆弱版のドキュメントルート（Docker: DOCROOT／レンタル: URLサブパス）
+│   ├── index.php            # → require ../app_vulnerable.php
+│   ├── init.php             # Web版初期化エンドポイント（トークン必須）
+│   └── .htaccess            # フロントコントローラへのルーティング
+├── secure/                  # 修正版のドキュメントルート（vuln/ と同じ構造）
+│   ├── index.php            # → require ../app_secure.php
+│   ├── init.php
+│   └── .htaccess
 ├── lib/
-│   ├── db.php               # PDO 接続ヘルパ
+│   ├── db.php               # PDO 接続ヘルパ + 設定読み込み
+│   ├── schema.php           # スキーマ作成 + シード投入（init_db.php と init.php で共用）
+│   ├── init_web.php         # Web版初期化のハンドラ（トークン検証）
 │   ├── auth.php             # セッション/アクセス制御
 │   ├── layout.php           # 共通 HTML シェル
 │   └── views.php            # 画面ごとの HTML 生成関数
@@ -74,8 +82,10 @@ sandbox/sqli-training-site-php/
 └── README.md
 ```
 
-**サーバ構成**：Apache 2.4（`FallbackResource /index.php`）+ mod_php 8.2 + PDO MySQL。
-docker-compose の `DOCROOT` 環境変数だけ変えて 1 つのイメージを 2 コンテナで使い分けています。
+**サーバ構成**：Apache 2.4 + mod_php 8.2 + PDO MySQL。
+
+- **Docker**：vhost の `DOCROOT` 環境変数で `vuln/` と `secure/` を切り替え、1つのイメージを2コンテナで使い分け（`FallbackResource`）。
+- **レンタルサーバー（FTPのみ）**：vhost 制御ができないので `vuln/.htaccess` `secure/.htaccess` の `mod_rewrite` でフロントコントローラに流す。`vuln/` `secure/` をそのままサブフォルダとしてアップロードすれば `https://ドメイン/vuln/` `https://ドメイン/secure/` でそれぞれアクセスできる。
 
 ## 5. 講義用デモシナリオ（PHP + MySQL 版）
 
@@ -183,7 +193,93 @@ password: anything
 - **login バイパスがなぜか成立しない** — payload の末尾 `#` を忘れていないか確認（`--` は MySQL では単独では効きません）
 - **ホスト 5050 が塞がっている** — macOS AirPlay Receiver をオフに、または `docker-compose.yml` の脆弱版ポートを変更
 
-## 8. Flask 版との関係
+## 8. レンタルサーバー（FTPオンリー・SSH無し）へのデプロイ手順
+
+ロリポップ等、**SSH接続が使えず FTP のみ** の環境を想定した手順です。
+
+### 8-1. 前提
+
+- MySQL データベースを 1 つ作成済み（例：`LAA1715842-sqltest`）
+- **脆弱版・修正版は同じ1つのデータベース・同じテーブルを共有** します（テーブル名にプレフィックスは付けません）。理由：ペイロード（`admin' #` など）が環境によって変わらないようにするためです。片方のアプリで登録したデータはもう片方からも見えますが、「同じデータでも脆弱版は漏れる／修正版は漏れない」という比較には影響しません。
+
+### 8-2. `config.php` を編集
+
+アップロード前に、実際の接続情報を書き込みます（すでに一部作業済みのはずです）：
+
+```php
+'host'    => getenv('DB_HOST') ?: 'mysqlXX-X.lolipop.lan',
+'user'    => getenv('DB_USER') ?: 'LAAxxxxxxx',
+'pass'    => getenv('DB_PASS') ?: '実際のパスワード',
+'dbname'  => getenv('DB_NAME') ?: 'LAAxxxxxxx-データベース名',
+'init_token' => getenv('INIT_TOKEN') ?: '長いランダム文字列をここに設定',
+```
+
+`init_token` は **必ず変更してください**。空文字のままだと `init.php` は常に 404 を返し、初期化できません（安全側のデフォルト）。ランダム文字列は例えば以下で生成できます：
+
+```bash
+php -r 'echo bin2hex(random_bytes(24));'
+```
+
+（手元に PHP が無ければ、適当な長いランダム文字列を自分で決めても構いません。）
+
+> **重要**：`config.php` には本物の DB パスワードが平文で入ります。この教材リポジトリを Git 等で公開・共有する場合は、`config.php` をコミットしない（`.gitignore` に追加する）か、コミット前にダミー値に戻してください。
+
+### 8-3. FTP でアップロード
+
+`sandbox/sqli-training-site-php/` 配下を **フォルダ構成そのまま** 、ドメイン（またはサブドメイン）の公開フォルダ直下にアップロードします。アップロード後、以下のように見えるはずです：
+
+```
+公開フォルダ/
+├── .htaccess
+├── config.php
+├── init_db.php        ← Web からは直接アクセス不可（.htaccess で保護）
+├── app_vulnerable.php
+├── app_secure.php
+├── lib/                ← Web からは直接アクセス不可
+├── static/
+│   ├── style.css       ← https://ドメイン/static/style.css
+│   └── app.js
+├── vuln/
+│   ├── index.php
+│   ├── init.php
+│   └── .htaccess
+└── secure/
+    ├── index.php
+    ├── init.php
+    └── .htaccess
+```
+
+`mysql/` `apache/` `docker-compose.yml` `Dockerfile` は Docker 専用なのでアップロード不要です（アップロードしても `.htaccess` で保護されるので害はありません）。
+
+### 8-4. DB を初期化（Web 経由）
+
+SSH が無いので、ブラウザから **1回だけ** 以下の URL を開いてテーブルとシードデータを作成します：
+
+```
+https://ドメイン/vuln/init.php?token=設定したinit_token
+```
+
+`OK: tables (re)initialised in database '...'.` と表示されれば成功です。脆弱版・修正版は同じDBを共有しているので、`vuln/init.php` と `secure/init.php` はどちらを叩いても同じ効果です（両方叩く必要はありません）。
+
+### 8-5. 動作確認
+
+```
+https://ドメイン/vuln/    ← 脆弱版トップページ
+https://ドメイン/secure/  ← 修正版トップページ
+```
+
+ログイン（`admin` / `admin-secret`）や、シナリオB（`admin' #` でのログインバイパス）などを試して動作を確認してください。
+
+### 8-6. デモ後のリセット
+
+会場でデモをして DB を汚した後、次の回のために綺麗な状態へ戻したい場合は、8-4 と同じ URL をもう一度開くだけです（テーブルを DROP → 再作成 → シード再投入）。
+
+### 8-7. 公開に関する注意（今回は「制限なしで公開」を選択されています）
+
+- 意図的に脆弱な SQLi 練習サイトが、誰でもアクセスできる状態でインターネット上に存在することになります。ボットによる自動スキャン・荒らし・スパム登録などのリスクはゼロではありません。
+- 気になった場合は、後からでも `.htaccess` + `.htpasswd` で Basic 認証をかける、`init.php` を初期化後に削除する、といった対策を追加できます。追加したくなったら声をかけてください。
+
+## 9. Flask 版との関係
 
 Flask + SQLite 版は [`sandbox/sqli-training-site/`](../sqli-training-site/) に残しています。
 本講義は **PHP + MySQL 版をメイン** として進めます。

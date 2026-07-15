@@ -1,0 +1,16 @@
+# Hifumi Secure Shop -- front-controller routing for shared/rental
+# hosting where Apache vhost config (FallbackResource) is not available.
+#
+# Any request that maps to a real file or directory (index.php, init.php)
+# is served as-is. Everything else (/login, /catalog, /admin/report, ...)
+# is routed to index.php, which dispatches based on REQUEST_URI.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule ^ index.php [L]
+</IfModule>
+
+Options -Indexes
