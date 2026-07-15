@@ -74,7 +74,7 @@ style: |
 ## 前半のおさらい
 
 - SQLi は **入力が構文に混ざる** こと
-- `admin' --` で認証条件が消える
+- `admin' #` で認証条件が消える
 - 「ユーザー列挙」は **次の攻撃の入口** になる
 
 <br>
@@ -229,11 +229,12 @@ style: |
 
 ---
 
-## 修正版ではどう変わる？（`secure_app.py`）
+## 修正版ではどう変わる？（`app_secure.php`）
 
-```python
-# secure_app.py L109
-login_error = "ユーザー名またはパスワードが正しくありません"
+```php
+// app_secure.php /login (失敗時)
+render_layout('Login',
+    view_login('ユーザー名またはパスワードが正しくありません', $username));
 ```
 
 <br>
@@ -248,7 +249,7 @@ login_error = "ユーザー名またはパスワードが正しくありませ�
 
 ![w:820](images/secure_login_unified.png)
 
-<small>`admin' --` を投げても、脆弱版と同じ見た目で「ユーザー名またはパスワードが正しくありません」の 1 行だけ。存在有無は漏れない。</small>
+<small>`admin' #` を投げても、脆弱版と同じ見た目で「ユーザー名またはパスワードが正しくありません」の 1 行だけ。存在有無は漏れない。</small>
 
 ---
 
@@ -358,7 +359,7 @@ Alert 名だけで判断せず、
 ## 🧪 実演
 
 1. `/login` を開く
-2. ユーザー名：`admin' --`
+2. ユーザー名：`admin' #`
 3. パスワード：`x`（何でも良い）
 4. ダッシュボードに遷移
 5. `Logged in as admin (admin)` を確認
@@ -374,7 +375,7 @@ Alert 名だけで判断せず、
 SELECT * FROM users WHERE username = '?' AND password = '?'
 
 -- 攻撃入力後
-SELECT * FROM users WHERE username = 'admin' --' AND password = 'x'
+SELECT * FROM users WHERE username = 'admin' #' AND password = 'x'
                                              └── ここから先はコメント
 ```
 
@@ -388,7 +389,7 @@ SELECT * FROM users WHERE username = 'admin' --' AND password = 'x'
 
 ---
 
-## 入力：ユーザー名に `admin' --`
+## 入力：ユーザー名に `admin' #`
 
 ![w:820](images/login_bypass_input.png)
 
@@ -425,20 +426,21 @@ SELECT * FROM users WHERE username = 'admin' --' AND password = 'x'
 
 ---
 
-## 修正版で同じ入力を試す（`secure_app.py`）
+## 修正版で同じ入力を試す（`app_secure.php`）
 
-```python
-# secure_app.py L96-99
-user = db.execute(
-    "SELECT * FROM users WHERE username = ? AND password = ?",
-    (username, password),
-).fetchone()
+```php
+// app_secure.php /login
+$stmt = $pdo->prepare(
+    'SELECT * FROM users WHERE username = ? AND password = ?'
+);
+$stmt->execute([$username, $password]);
+$user = $stmt->fetch();
 ```
 
 <br>
 
 - プレースホルダ `?` で **値と構文を分離**
-- `admin' --` は **そのまま文字列** として扱われる
+- `admin' #` は **そのまま文字列** として扱われる
 - 該当ユーザーが無いのでログイン失敗
 
 ---
@@ -447,7 +449,7 @@ user = db.execute(
 
 ![w:820](images/secure_login_unified.png)
 
-<small>同じ `admin' --` を投げても、ログインできず統一エラー。</small>
+<small>同じ `admin' #` を投げても、ログインできず統一エラー。</small>
 
 ---
 
@@ -474,11 +476,12 @@ user = db.execute(
 
 ## 脆弱版のクエリ（再掲）
 
-```python
-# app.py L189
-q = request.args.get("q", "")
-query = f"SELECT id, name, price FROM products " \
-        f"WHERE name LIKE '%{q}%'"
+```php
+// app_vulnerable.php /catalog
+$q = $_GET['q'] ?? '';
+$query = "SELECT id, name, price FROM products "
+       . "WHERE name LIKE '%{$q}%'";
+$rows = $pdo->query($query)->fetchAll(PDO::FETCH_NUM);
 ```
 
 <br>
@@ -496,7 +499,7 @@ query = f"SELECT id, name, price FROM products " \
 1. `/catalog?q=%25%27%20UNION%20SELECT%20id,%20email,%20last_order_total%20FROM%20customers%20--`
    （URL エンコード済み。フォームには生の文字列で入力）
 2. 生の入力：
-   `%' UNION SELECT id, email, last_order_total FROM customers --`
+   `%' UNION SELECT id, email, last_order_total FROM customers #`
 3. 検索ボタンを押す
 
 </div>
@@ -511,7 +514,7 @@ SELECT id, name, price FROM products WHERE name LIKE '%?%'
 
 -- 攻撃入力後
 SELECT id, name, price FROM products WHERE name LIKE '%%'
-UNION SELECT id, email, last_order_total FROM customers --%'
+UNION SELECT id, email, last_order_total FROM customers #%'
 ```
 
 <br>
@@ -526,7 +529,7 @@ UNION SELECT id, email, last_order_total FROM customers --%'
 
 ![w:900](images/catalog_union_input.png)
 
-<small>`%' UNION SELECT id, email, last_order_total FROM customers --` を検索入力に貼り付けた状態。</small>
+<small>`%' UNION SELECT id, email, last_order_total FROM customers #` を検索入力に貼り付けた状態。</small>
 
 ---
 
@@ -567,14 +570,15 @@ UNION SELECT id, email, last_order_total FROM customers --%'
 
 ---
 
-## 修正版のコード（`secure_app.py`）
+## 修正版のコード（`app_secure.php`）
 
-```python
-# secure_app.py L173-175
-rows = db.execute(
-    "SELECT id, name, price FROM products WHERE name LIKE ?",
-    (f"%{q}%",),
-).fetchall()
+```php
+// app_secure.php /catalog
+$stmt = $pdo->prepare(
+    'SELECT id, name, price FROM products WHERE name LIKE ?'
+);
+$stmt->execute(["%{$q}%"]);
+$rows = $stmt->fetchAll(PDO::FETCH_NUM);
 ```
 
 <br>
@@ -614,10 +618,11 @@ rows = db.execute(
 
 ## 脆弱版のクエリ
 
-```python
-# app.py L269
-query = f"SELECT id, customer_name, email, message FROM contacts " \
-        f"WHERE message LIKE '%{q}%'"
+```php
+// app_vulnerable.php /contacts
+$query = "SELECT id, customer_name, email, message FROM contacts "
+       . "WHERE message LIKE '%{$q}%'";
+$rows = $pdo->query($query)->fetchAll(PDO::FETCH_NUM);
 ```
 
 <br>
@@ -634,7 +639,7 @@ query = f"SELECT id, customer_name, email, message FROM contacts " \
 
 1. `/contacts` を開く
 2. 検索欄に：
-   `%' UNION SELECT id, customer_name, email, internal_memo FROM contacts --`
+   `%' UNION SELECT id, customer_name, email, internal_memo FROM contacts #`
 3. 検索ボタン
 
 </div>
@@ -645,7 +650,7 @@ query = f"SELECT id, customer_name, email, message FROM contacts " \
 
 ![w:900](images/contacts_union_input.png)
 
-<small>`%' UNION SELECT id, customer_name, email, internal_memo FROM contacts --` を貼り付けた状態。</small>
+<small>`%' UNION SELECT id, customer_name, email, internal_memo FROM contacts #` を貼り付けた状態。</small>
 
 ---
 
@@ -684,13 +689,14 @@ query = f"SELECT id, customer_name, email, message FROM contacts " \
 
 ## 修正版のコード
 
-```python
-# secure_app.py L252-257
-rows = db.execute(
-    "SELECT id, customer_name, email, message FROM contacts "
-    "WHERE message LIKE ?",
-    (f"%{q}%",),
-).fetchall()
+```php
+// app_secure.php /contacts
+$stmt = $pdo->prepare(
+    'SELECT id, customer_name, email, message FROM contacts '
+  . 'WHERE message LIKE ?'
+);
+$stmt->execute(["%{$q}%"]);
+$rows = $stmt->fetchAll(PDO::FETCH_NUM);
 ```
 
 <br>
@@ -790,17 +796,19 @@ rows = db.execute(
 
 ---
 
-## 修正版のコード（`secure_app.py`）
+## 修正版のコード（`app_secure.php`）
 
-```python
-# secure_app.py L189-198
-if not raw_id.strip().lstrip("-").isdigit():
-    return render_template("customer_detail.html",
-        error="idは整数で指定してください。"), 400
-
-customer = db.execute(
-    "SELECT ... FROM customers WHERE id = ?", (int(raw_id),)
-).fetchone()
+```php
+// app_secure.php /customer
+if (!preg_match('/\A-?\d+\z/', trim($raw_id))) {
+    http_response_code(400);
+    return view_customer($raw_id, null, 'idは整数で指定してください。');
+}
+$stmt = $pdo->prepare(
+    'SELECT id, name, email, phone, note FROM customers WHERE id = ?'
+);
+$stmt->execute([(int)$raw_id]);
+$row = $stmt->fetch(PDO::FETCH_NUM);
 ```
 
 <br>
@@ -854,25 +862,24 @@ customer = db.execute(
 
 ---
 
-## 脆弱版のコード（`app.py`）
+## 脆弱版のコード（`app_vulnerable.php`）
 
-```python
-# app.py /register
-token_query = (
-    f"SELECT 1 FROM invite_tokens "
-    f"WHERE token = '{token}' AND used = 0"
-)
-row = db.execute(token_query).fetchone()
-if not row:
-    flash("招待コードが無効です。", "danger")
-    return redirect(url_for("login"))
+```php
+// app_vulnerable.php /register
+$token_query = "SELECT 1 FROM invite_tokens "
+             . "WHERE token = '{$token}' AND used = 0";
+$ok = (bool)$pdo->query($token_query)?->fetch();
+if (!$ok) {
+    flash('danger', '招待コードが無効です。');
+    redirect('/login');
+}
 ```
 
 <br>
 
 <div class="danger">
 
-またしても `f"..."` で **token を直接埋め込み**。
+またしても `"{$token}"` で **token を直接埋め込み**。
 
 </div>
 
@@ -885,7 +892,7 @@ if not row:
 ## 🧪 実演
 
 1. `/login` の「新規ユーザー登録」を開く
-2. 招待コード欄に：`' OR '1'='1' --`
+2. 招待コード欄に：`' OR '1'='1' #`
 3. ユーザー名・パスワードは何でも良い
 4. 「登録する」を押す
 5. 「ユーザー '...' を登録しました。」の flash が出る
@@ -901,9 +908,9 @@ if not row:
 SELECT 1 FROM invite_tokens
 WHERE token = 'INVITE-2026-STAFF-A1' AND used = 0
 
--- ' OR '1'='1' -- 投入時
+-- ' OR '1'='1' # 投入時
 SELECT 1 FROM invite_tokens
-WHERE token = '' OR '1'='1' --' AND used = 0
+WHERE token = '' OR '1'='1' #' AND used = 0
                      └── 常に真
 ```
 
@@ -922,7 +929,7 @@ WHERE token = '' OR '1'='1' --' AND used = 0
 
 ![w:900](images/register_token_bypass_input.png)
 
-<small>招待コード欄に `' OR '1'='1' --`、ユーザー名は何でも良い。「登録する」を押す前。</small>
+<small>招待コード欄に `' OR '1'='1' #`、ユーザー名は何でも良い。「登録する」を押す前。</small>
 
 ---
 
@@ -938,19 +945,20 @@ WHERE token = '' OR '1'='1' --' AND used = 0
 
 ![w:900](images/secure_register_token_rejected.png)
 
-<small>プレースホルダなので `' OR '1'='1' --` はただの文字列。「招待コードが無効です。」で拒否。</small>
+<small>プレースホルダなので `' OR '1'='1' #` はただの文字列。「招待コードが無効です。」で拒否。</small>
 
 ---
 
-## 修正版のコード（`secure_app.py`）
+## 修正版のコード（`app_secure.php`）
 
-```python
-# secure_app.py /register
-row = db.execute(
-    "SELECT 1 FROM invite_tokens "
-    "WHERE token = ? AND used = 0",
-    (token,),
-).fetchone()
+```php
+// app_secure.php /register
+$stmt = $pdo->prepare(
+    'SELECT 1 FROM invite_tokens '
+  . 'WHERE token = ? AND used = 0'
+);
+$stmt->execute([$token]);
+if (!$stmt->fetch()) { /* 拒否 */ }
 ```
 
 <br>
@@ -981,7 +989,7 @@ row = db.execute(
 
 ## 攻撃連鎖の予告
 
-1. すでに `admin' --` で **admin セッション** を取得済み（第4章）
+1. すでに `admin' #` で **admin セッション** を取得済み（第4章）
 2. `/register` の招待コードを SQLi で **バイパス**（第8章）
 3. その同じリクエストで **ユーザー名にも SQLi** を仕込む
 4. `/admin/report` を開くと **admin のパスワードが表示** される
@@ -999,8 +1007,8 @@ row = db.execute(
 ## 🧪 実演
 
 1. `/login` の「新規ユーザー登録」を開く
-2. 招待コード：`' OR '1'='1' --`
-3. ユーザー名：`nobody' UNION SELECT password FROM users WHERE username='admin' --`
+2. 招待コード：`' OR '1'='1' #`
+3. ユーザー名：`nobody' UNION SELECT password FROM users WHERE username='admin' #`
 4. パスワードは何でも良い
 5. 「登録する」を押す
 6. `/admin/report` を開く
@@ -1009,15 +1017,15 @@ row = db.execute(
 
 ---
 
-## 登録側の INSERT は安全（`app.py`）
+## 登録側の INSERT は安全（`app_vulnerable.php`）
 
-```python
-# app.py /register の INSERT
-db.execute(
+```php
+// app_vulnerable.php /register の INSERT
+$ins = $pdo->prepare(
     "INSERT INTO users (username, password, role, email) "
-    "VALUES (?, ?, 'staff', ?)",
-    (username, password, f"{username}@example.local"),
-)
+  . "VALUES (?, ?, 'staff', ?)"
+);
+$ins->execute([$username, $password, $username . '@example.local']);
 ```
 
 <br>
@@ -1028,23 +1036,21 @@ db.execute(
 
 ---
 
-## 発火はレポート側（`app.py` L302-306）
+## 発火はレポート側（`app_vulnerable.php`）
 
-```python
-# app.py /admin/report
-query = (
-    "SELECT o.status AS activity FROM orders o "
-    "JOIN customers c ON o.customer_id = c.id "
-    f"WHERE c.name = '{uname}'"
-)
-row = db.execute(query).fetchone()
+```php
+// app_vulnerable.php /admin/report
+$q = "SELECT o.status AS activity FROM orders o "
+   . "JOIN customers c ON o.customer_id = c.id "
+   . "WHERE c.name = '{$uname}'";
+$r = $pdo->query($q)?->fetch();
 ```
 
 <br>
 
 <div class="danger">
 
-DB 内の値を **f-string で再結合** している。
+DB 内の値を **文字列補間で再結合** している。
 ここで **初めて** UNION が構文として動く。
 
 </div>
@@ -1055,7 +1061,7 @@ DB 内の値を **f-string で再結合** している。
 
 ![w:900](images/register_token_bypass_input.png)
 
-<small>招待コードに `' OR '1'='1' --`、ユーザー名に `nobody' UNION SELECT password FROM users WHERE username='admin' --`。押す前。</small>
+<small>招待コードに `' OR '1'='1' #`、ユーザー名に `nobody' UNION SELECT password FROM users WHERE username='admin' #`。押す前。</small>
 
 ---
 
@@ -1089,16 +1095,17 @@ DB 内の値を **f-string で再結合** している。
 
 ---
 
-## 修正版のコード（`secure_app.py`）
+## 修正版のコード（`app_secure.php`）
 
-```python
-# secure_app.py L276-282
-row = db.execute(
-    "SELECT o.status AS activity FROM orders o "
-    "JOIN customers c ON o.customer_id = c.id "
-    "WHERE c.name = ?",
-    (uname,),
-).fetchone()
+```php
+// app_secure.php /admin/report
+$stmt = $pdo->prepare(
+    'SELECT o.status AS activity FROM orders o '
+  . 'JOIN customers c ON o.customer_id = c.id '
+  . 'WHERE c.name = ?'
+);
+$stmt->execute([$uname]);
+$r = $stmt->fetch();
 ```
 
 <br>

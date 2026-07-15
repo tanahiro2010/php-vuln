@@ -137,7 +137,7 @@ style: |
 ## 🧪 実演（講師）
 
 1. `http://127.0.0.1:5000/login` を開く
-2. ユーザー名に `admin' --` と入力
+2. ユーザー名に `admin' #` と入力
 3. パスワードは何でも良い
 4. ログインに成功する
 
@@ -145,7 +145,7 @@ style: |
 
 ---
 
-## 入力：ユーザー名に `admin' --` を打つ
+## 入力：ユーザー名に `admin' #` を打つ
 
 <small>ログイン画面。ユーザー名欄に SQLi payload を貼り付け、パスワードは適当に 1 文字。</small>
 
@@ -183,7 +183,7 @@ style: |
 
 ## 入力：検索欄に UNION 混じりの文字列を貼る
 
-<small>商品検索の入力欄に `%' UNION SELECT id, email, last_order_total FROM customers --` を貼り付けた状態。</small>
+<small>商品検索の入力欄に `%' UNION SELECT id, email, last_order_total FROM customers #` を貼り付けた状態。</small>
 
 ![w:1200](images/catalog_union_input.png)
 
@@ -236,8 +236,12 @@ style: |
 
 | 種類 | URL | 説明 |
 | --- | --- | --- |
-| 脆弱版 `app.py` | `http://127.0.0.1:5000` | わざと脆弱に作った |
-| 修正版 `secure_app.py` | `http://127.0.0.1:5010` | 修正済み |
+| 脆弱版 `app_vulnerable.php` | `http://127.0.0.1:5050` | わざと脆弱に作った |
+| 修正版 `app_secure.php` | `http://127.0.0.1:5010` | 修正済み |
+
+<br>
+
+サーバ：**PHP 8.2**（PDO MySQL）／ DB：**MySQL 8.0**
 
 <br>
 
@@ -314,7 +318,7 @@ style: |
 
 ```text
 本来:  SELECT * FROM users WHERE username = ' [ここは値] '
-攻撃:  SELECT * FROM users WHERE username = ' admin' --  '
+攻撃:  SELECT * FROM users WHERE username = ' admin' #  '
                                                   ↑
                               ここで「構文」に変わってしまう
 ```
@@ -351,18 +355,20 @@ style: |
 
 ---
 
-## 脆弱なコードを見る（`app.py`）
+## 脆弱なコードを見る（`app_vulnerable.php`）
 
-```python
-# app.py L93
-query = f"SELECT * FROM users WHERE " \
-        f"username = '{username}' AND password = '{password}'"
-user = db.execute(query).fetchone()
+```php
+// app_vulnerable.php /login
+$username = $_POST['username'] ?? '';
+$password = $_POST['password'] ?? '';
+$query = "SELECT * FROM users "
+       . "WHERE username = '{$username}' AND password = '{$password}'";
+$user = $pdo->query($query)->fetch();
 ```
 
 <div class="danger">
 
-`f"..."` で **文字列を直接結合** している。
+`"{$var}"` で **入力を SQL に直接埋め込み**。
 これが今日の悪の根源です。
 
 </div>
@@ -386,25 +392,43 @@ WHERE username = 'admin' AND password = 'admin-secret'
 
 ---
 
-## `admin' --` を入れると
+## `admin' #` を入れると
 
 <br>
 
-入力：`username = admin' --`　`password = xxxxx`
+入力：`username = admin' #`　`password = xxxxx`
 
 ```sql
 SELECT * FROM users
-WHERE username = 'admin' --' AND password = 'xxxxx'
+WHERE username = 'admin' #' AND password = 'xxxxx'
 ```
 
 <br>
 
 <div class="danger">
 
-`--` から後ろは **SQLite にとってコメント** になる。
+`#` から後ろは **MySQL にとってコメント** になる。
 つまり **パスワード条件がまるごと消える**。
 
 </div>
+
+---
+
+## MySQL のコメント記法
+
+<div class="warning">
+
+MySQL の 1 行コメント記号は：
+
+- `#`　　　　→　その行の残りをすべてコメント
+- `-- `（`--` + 空白）→　残りをコメント
+- `--` **単独** は **コメントにならない**
+
+</div>
+
+<br>
+
+本講義では `#` に統一します。SQLite では `--` 単独で成立していましたが、MySQL では **後ろに空白がないと数字の演算子扱い** になり、payload が失敗します。
 
 ---
 
@@ -433,7 +457,7 @@ WHERE username = 'admin' --' AND password = 'xxxxx'
 
 <br>
 
-攻撃者はいきなり `admin' --` を試すわけではありません。
+攻撃者はいきなり `admin' #` を試すわけではありません。
 
 まず **「admin というユーザーが存在するか」** を
 確かめます。
@@ -515,13 +539,14 @@ WHERE username = 'admin' --' AND password = 'xxxxx'
 
 ## なぜ違うメッセージ？（脆弱版のコード）
 
-```python
-# app.py L111 ─ ログイン失敗時、さらに存在確認クエリを実行
-exists_query = f"SELECT 1 FROM users WHERE username = '{username}'"
-exists = db.execute(exists_query).fetchone()
+```php
+// app_vulnerable.php /login  ─ ログイン失敗時、さらに存在確認クエリ
+$exists_query = "SELECT 1 FROM users WHERE username = '{$username}'";
+$exists = (bool)$pdo->query($exists_query)?->fetch();
 
-# app.py L120
-login_error = "パスワードが違います" if exists else "そのユーザーは存在しません"
+$login_error = $exists
+    ? 'パスワードが違います'
+    : 'そのユーザーは存在しません';
 ```
 
 <br>
@@ -577,13 +602,13 @@ login_error = "パスワードが違います" if exists else "そのユーザ�
 ## 🧪 実演（講師）
 
 1. `/login` を開く
-2. ユーザー名：`admin' --`
+2. ユーザー名：`admin' #`
 3. パスワード：何でも良い（`x` など）
 4. ログイン成功　→　`/dashboard`
 
 </div>
 
-別解：`admin' OR '1'='1' --` でも成立します。
+別解：`admin' OR '1'='1' #` でも成立します。
 
 ---
 
@@ -593,19 +618,19 @@ login_error = "パスワードが違います" if exists else "そのユーザ�
 
 ```sql
 SELECT * FROM users
-WHERE username = 'admin' --' AND password = 'x'
+WHERE username = 'admin' #' AND password = 'x'
 ```
 
 <br>
 
 - `'admin'` で値が閉じる
-- `--` 以降はコメント扱い
+- `#` 以降はコメント扱い
 - 残る条件は `username = 'admin'` のみ
 - 結果：admin 行が 1 件ヒット
 
 ---
 
-## 入力：ユーザー名に `admin' --`
+## 入力：ユーザー名に `admin' #`
 
 <small>ユーザー名欄に SQLi payload、パスワードは適当な 1 文字。「ログイン」を押す前。</small>
 
@@ -712,13 +737,14 @@ SELECT id, email, last_order_total FROM customers
 
 ---
 
-## 脆弱版のクエリ（`app.py`）
+## 脆弱版のクエリ（`app_vulnerable.php`）
 
-```python
-# app.py L189
-q = request.args.get("q", "")
-query = f"SELECT id, name, price FROM products " \
-        f"WHERE name LIKE '%{q}%'"
+```php
+// app_vulnerable.php /catalog
+$q = $_GET['q'] ?? '';
+$query = "SELECT id, name, price FROM products "
+       . "WHERE name LIKE '%{$q}%'";
+$rows = $pdo->query($query)->fetchAll();
 ```
 
 <br>
