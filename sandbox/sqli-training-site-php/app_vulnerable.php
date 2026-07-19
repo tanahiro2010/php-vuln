@@ -23,6 +23,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib/db.php';
+require __DIR__ . '/lib/url.php';
 require __DIR__ . '/lib/auth.php';
 require __DIR__ . '/lib/layout.php';
 require __DIR__ . '/lib/views.php';
@@ -32,7 +33,7 @@ $config = require __DIR__ . '/config.php';
 // served by Apache directly and never reach PHP. If for some reason a
 // static-looking URL hits this router (e.g. running under `php -S`),
 // let the built-in server fall through to its own static handler.
-$path   = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
+$path   = current_app_path();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if (PHP_SAPI === 'cli-server' && preg_match('/\.(css|js|png|jpg|jpeg|gif|svg|ico|map)$/i', $path)) {

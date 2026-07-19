@@ -18,13 +18,23 @@ function render_layout(string $page_title, string $inner_html): void
     $flashes  = drain_flashes();
     $user     = current_user();
     $role     = current_role();
+    $style_url = h(asset_url('/style.css'));
+    $app_js_url = h(asset_url('/app.js'));
+    $dashboard_url = h(app_url('/dashboard'));
+    $catalog_url = h(app_url('/catalog'));
+    $customer_url = h(app_url('/customer?id=1'));
+    $track_url = h(app_url('/track?order_id=1'));
+    $contacts_url = h(app_url('/contacts'));
+    $report_url = h(app_url('/admin/report'));
+    $logout_url = h(app_url('/logout'));
+    $login_url = h(app_url('/login'));
     ?><!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= h($page_title) ?> - Hifumi Secure Shop</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="<?= $style_url ?>">
 </head>
 <body>
   <div class="app-shell">
@@ -34,16 +44,16 @@ function render_layout(string $page_title, string $inner_html): void
         <small>Internal CRM / EC Admin</small>
       </div>
       <nav>
-        <a href="/dashboard">📊 Dashboard</a>
-        <a href="/catalog">🛒 Product Catalog</a>
-        <a href="/customer?id=1">👤 Customers <span class="badge internal">社内用</span></a>
-        <a href="/track?order_id=1">📦 Order Tracking</a>
-        <a href="/contacts">✉️ Contacts <span class="badge internal">顧客情報</span></a>
-        <a href="/admin/report">📈 Admin Report <span class="badge admin-only">管理者のみ</span></a>
+        <a href="<?= $dashboard_url ?>">📊 Dashboard</a>
+        <a href="<?= $catalog_url ?>">🛒 Product Catalog</a>
+        <a href="<?= $customer_url ?>">👤 Customers <span class="badge internal">社内用</span></a>
+        <a href="<?= $track_url ?>">📦 Order Tracking</a>
+        <a href="<?= $contacts_url ?>">✉️ Contacts <span class="badge internal">顧客情報</span></a>
+        <a href="<?= $report_url ?>">📈 Admin Report <span class="badge admin-only">管理者のみ</span></a>
         <?php if ($user): ?>
-          <a href="/logout">🚪 Logout (<?= h($user) ?>)</a>
+          <a href="<?= $logout_url ?>">🚪 Logout (<?= h($user) ?>)</a>
         <?php else: ?>
-          <a href="/login">🔑 Login</a>
+          <a href="<?= $login_url ?>">🔑 Login</a>
         <?php endif; ?>
       </nav>
     </aside>
@@ -66,7 +76,7 @@ function render_layout(string $page_title, string $inner_html): void
       </footer>
     </div>
   </div>
-  <script src="/static/app.js"></script>
+  <script src="<?= $app_js_url ?>"></script>
 </body>
 </html><?php
 }

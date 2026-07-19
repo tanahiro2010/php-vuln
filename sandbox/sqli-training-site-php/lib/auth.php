@@ -45,7 +45,7 @@ function require_login(): void
 {
     if (empty($_SESSION['user'])) {
         flash('warn', 'ログインが必要です。');
-        header('Location: /login');
+        header('Location: ' . app_url('/login'));
         exit;
     }
 }
@@ -54,18 +54,18 @@ function require_admin(): void
 {
     if (empty($_SESSION['user'])) {
         flash('warn', 'ログインが必要です。');
-        header('Location: /login');
+        header('Location: ' . app_url('/login'));
         exit;
     }
     if (($_SESSION['role'] ?? '') !== 'admin') {
         flash('warn', 'この画面は管理者専用です。');
-        header('Location: /dashboard');
+        header('Location: ' . app_url('/dashboard'));
         exit;
     }
 }
 
 function redirect(string $path): void
 {
-    header('Location: ' . $path);
+    header('Location: ' . app_url($path));
     exit;
 }

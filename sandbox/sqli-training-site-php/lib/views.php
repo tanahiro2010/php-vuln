@@ -10,6 +10,8 @@
 
 function view_index(): string
 {
+    $login_url = h(app_url('/login'));
+    $dashboard_url = h(app_url('/dashboard'));
     return <<<HTML
 <div class="panel">
   <h2>Hifumi Secure Shop へようこそ</h2>
@@ -18,8 +20,8 @@ function view_index(): string
     左のメニューから各画面を確認できます。
   </p>
   <p>
-    <a class="btn" href="/login">ログイン画面へ</a>
-    <a class="btn secondary" href="/dashboard">ダッシュボードへ</a>
+    <a class="btn" href="{$login_url}">ログイン画面へ</a>
+    <a class="btn secondary" href="{$dashboard_url}">ダッシュボードへ</a>
   </p>
 </div>
 HTML;
@@ -29,11 +31,13 @@ function view_login(?string $login_error = null, ?string $last_username = null):
 {
     $err  = $login_error ? '<div class="alert danger">' . h($login_error) . '</div>' : '';
     $u    = h($last_username ?? '');
+    $login_url = h(app_url('/login'));
+    $register_url = h(app_url('/register'));
     return <<<HTML
 <div class="panel" style="max-width:420px;">
   <h2>ログイン</h2>
   {$err}
-  <form method="post" action="/login">
+  <form method="post" action="{$login_url}">
     <div class="form-row">
       <label for="username">ユーザー名</label>
       <input type="text" id="username" name="username" autocomplete="off" value="{$u}">
@@ -48,7 +52,7 @@ function view_login(?string $login_error = null, ?string $last_username = null):
 
 <div class="panel" style="max-width:420px;">
   <h2>新規ユーザー登録</h2>
-  <form method="post" action="/register">
+  <form method="post" action="{$register_url}">
     <div class="form-row">
       <label for="reg_token">招待コード</label>
       <input type="text" id="reg_token" name="token" autocomplete="off">
@@ -74,6 +78,11 @@ function view_dashboard(int $customers, int $contacts, int $orders, string $admi
     $banner = $user
         ? '<div class="success-banner">✅ Logged in as ' . h($user) . ($role ? ' (' . h($role) . ')' : '') . '</div>'
         : '<div class="alert warn">ゲストとして閲覧中です。ログインしていません。</div>';
+    $catalog_url = h(app_url('/catalog'));
+    $customer_url = h(app_url('/customer?id=1'));
+    $track_url = h(app_url('/track?order_id=1'));
+    $contacts_url = h(app_url('/contacts'));
+    $report_url = h(app_url('/admin/report'));
     return <<<HTML
 {$banner}
 
@@ -99,11 +108,11 @@ function view_dashboard(int $customers, int $contacts, int $orders, string $admi
 <div class="panel">
   <h2>ショートカット</h2>
   <p>
-    <a href="/catalog">商品検索</a> ・
-    <a href="/customer?id=1">顧客詳細</a> ・
-    <a href="/track?order_id=1">注文照会</a> ・
-    <a href="/contacts">問い合わせ一覧</a> ・
-    <a href="/admin/report">管理者レポート <span class="badge admin-only">管理者のみ</span></a>
+    <a href="{$catalog_url}">商品検索</a> ・
+    <a href="{$customer_url}">顧客詳細</a> ・
+    <a href="{$track_url}">注文照会</a> ・
+    <a href="{$contacts_url}">問い合わせ一覧</a> ・
+    <a href="{$report_url}">管理者レポート <span class="badge admin-only">管理者のみ</span></a>
   </p>
 </div>
 HTML;
@@ -114,6 +123,7 @@ function view_catalog(string $q, array $rows, ?string $error = null): string
 {
     $qh   = h($q);
     $errh = $error ? '<div class="alert danger">クエリエラー: ' . h($error) . '</div>' : '';
+    $catalog_url = h(app_url('/catalog'));
     $tbody = '';
     if (!$rows) {
         $tbody = '<tr><td colspan="3" class="muted">該当する商品がありません。</td></tr>';
@@ -131,7 +141,7 @@ function view_catalog(string $q, array $rows, ?string $error = null): string
 {$errh}
 <div class="panel">
   <h2>商品検索</h2>
-  <form method="get" action="/catalog">
+  <form method="get" action="{$catalog_url}">
     <div class="form-row">
       <label for="q">商品名で検索</label>
       <input type="search" id="q" name="q" value="{$qh}" placeholder="例: Keyboard">
@@ -154,6 +164,7 @@ function view_customer(string $raw_id, ?array $row, ?string $error = null): stri
 {
     $idh  = h($raw_id);
     $errh = $error ? '<div class="alert danger">クエリエラー: ' . h($error) . '</div>' : '';
+    $customer_url = h(app_url('/customer'));
     if ($row) {
         $body = sprintf(
             '<div class="panel"><h2>顧客詳細</h2><table class="data-table">'
@@ -174,7 +185,7 @@ function view_customer(string $raw_id, ?array $row, ?string $error = null): stri
 {$errh}
 <div class="panel">
   <h2>顧客ID検索</h2>
-  <form method="get" action="/customer">
+  <form method="get" action="{$customer_url}">
     <div class="form-row">
       <label for="id">Customer ID</label>
       <input type="text" id="id" name="id" value="{$idh}">
@@ -190,6 +201,7 @@ function view_order_track(string $raw_order_id, ?array $row, ?string $error = nu
 {
     $idh  = h($raw_order_id);
     $errh = $error ? '<div class="alert danger">クエリエラー: ' . h($error) . '</div>' : '';
+    $track_url = h(app_url('/track'));
     if ($row) {
         $body = sprintf(
             '<div class="panel"><h2>注文詳細</h2><table class="data-table">'
@@ -207,7 +219,7 @@ function view_order_track(string $raw_order_id, ?array $row, ?string $error = nu
 {$errh}
 <div class="panel">
   <h2>注文照会</h2>
-  <form method="get" action="/track">
+  <form method="get" action="{$track_url}">
     <div class="form-row">
       <label for="order_id">Order ID</label>
       <input type="text" id="order_id" name="order_id" value="{$idh}">
@@ -223,6 +235,7 @@ function view_contacts(string $q, array $rows, ?string $error = null): string
 {
     $qh   = h($q);
     $errh = $error ? '<div class="alert danger">クエリエラー: ' . h($error) . '</div>' : '';
+    $contacts_url = h(app_url('/contacts'));
     $tbody = '';
     if (!$rows) {
         $tbody = '<tr><td colspan="4" class="muted">該当する問い合わせがありません。</td></tr>';
@@ -239,7 +252,7 @@ function view_contacts(string $q, array $rows, ?string $error = null): string
 {$errh}
 <div class="panel">
   <h2>問い合わせ検索</h2>
-  <form method="get" action="/contacts">
+  <form method="get" action="{$contacts_url}">
     <div class="form-row">
       <label for="q">問い合わせ内容で検索</label>
       <input type="search" id="q" name="q" value="{$qh}" placeholder="例: invoice">
