@@ -47,5 +47,5 @@ return [
     //   php -r 'echo bin2hex(random_bytes(24));'
     // Consider deleting/renaming vuln/init.php and secure/init.php after
     // the first successful run.
-    'init_token' => getenv('INIT_TOKEN') ?: '',
+    'init_token' => getenv('INIT_TOKEN') ?: 'init-token',
 ];
