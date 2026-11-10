@@ -3,7 +3,7 @@ marp: true
 theme: default
 paginate: true
 header: "SQLインジェクション講座"
-footer: "© 2026"
+footer: "© <開催年>"
 style: |
   section {
     font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
@@ -57,7 +57,7 @@ style: |
 
 <br>
 
-2026年7月　後半（50分）
+<開催年月>　後半（50分）
 
 ---
 
@@ -278,7 +278,7 @@ ZAP に **自動で入り口を集めてもらう**。
 
 ## 🧪 実演
 
-1. ZAP のブラウザで `http://127.0.0.1:5000` を開く
+1. ZAP のブラウザで `https://hifumi-123coltd.holy.jp/sqli-training-site-php/vuln` を開く
 2. **Spider** で URL を収集
 3. **Active Scan** を走らせる
 4. Alert タブに `SQL Injection` の疑いが並ぶ
@@ -445,7 +445,7 @@ $user = $stmt->fetch();
 
 ---
 
-## 修正版の画面（:5010）
+## 修正版の画面（/secure/）
 
 ![w:820](images/secure_login_unified.png)
 
@@ -588,7 +588,7 @@ $rows = $stmt->fetchAll(PDO::FETCH_NUM);
 
 ---
 
-## 修正版の画面（:5010）
+## 修正版の画面（/secure/）
 
 ![w:900](images/secure_catalog_safe.png)
 
@@ -705,7 +705,7 @@ $rows = $stmt->fetchAll(PDO::FETCH_NUM);
 
 ---
 
-## 修正版の画面（:5010）
+## 修正版の画面（/secure/）
 
 ![w:900](images/secure_contacts_safe.png)
 
@@ -818,7 +818,7 @@ $row = $stmt->fetch(PDO::FETCH_NUM);
 
 ---
 
-## 修正版の画面（:5010）
+## 修正版の画面（/secure/）
 
 ![w:820](images/secure_customer_400.png)
 
@@ -1114,7 +1114,7 @@ $r = $stmt->fetch();
 
 ---
 
-## 修正版の画面（:5010）
+## 修正版の画面（/secure/）
 
 ![w:900](images/secure_admin_report_clean.png)
 
@@ -1129,13 +1129,13 @@ $r = $stmt->fetch();
 
 ---
 
-## 同じ攻撃を `:5010` に投げる
+## 同じ攻撃を `/secure/` に投げる
 
 <div class="poc">
 
 ## 🧪 実演
 
-1. ブラウザを `http://127.0.0.1:5010` に切り替え
+1. ブラウザを `https://hifumi-123coltd.holy.jp/sqli-training-site-php/secure` に切り替え
 2. 前半・後半の攻撃入力を **全部** 順に試す
 3. 一つも成立しないことを確認
 
@@ -1145,7 +1145,7 @@ $r = $stmt->fetch();
 
 ## 結果一覧
 
-| シナリオ | 脆弱版 (:5000) | 修正版 (:5010) |
+| シナリオ | 脆弱版 (/vuln/) | 修正版 (/secure/) |
 | --- | --- | --- |
 | ユーザー列挙 | エラー文で判別可 | 常に同一メッセージ |
 | ログインバイパス | admin としてログイン | 「正しくありません」 |
@@ -1276,6 +1276,201 @@ $r = $stmt->fetch();
 
 ---
 
+<!-- _class: lead -->
+
+# TIPS
+# sqlmap と WAF（SiteGuard）の話
+
+---
+
+## このTIPSについて
+
+<br>
+
+- 事前アンケートでご要望があった補足トピックです
+- 本題（SQLインジェクションの仕組みと対策）の **外側のおまけ**
+- 時間が余れば、この後の Q&A の前に軽く触れます
+
+<div class="warning">
+
+ここから先は **解説のみ**。ライブでの WAF 切り替えや再検証は行いません。
+
+</div>
+
+---
+
+## sqlmap の結果が意味すること
+
+<br>
+
+- ログインフォームの `username` / `password` それぞれで、
+  boolean-based blind／error-based／time-based blind／UNION query の
+  **4 種類の注入方法**が成立していた
+- これは新しい脆弱性ではなく、**今日見せた `admin' #` の手動攻撃**を
+  ツールが機械的・網羅的に裏付けただけの結果
+
+<br>
+
+sqlmap は「成立する注入方法を広く速く探す」ツール。
+
+---
+
+## sqlmap の基本的なコマンド構文
+
+```bash
+python sqlmap.py -u "対象URL" \
+  --data="username=admin&password=pass"
+```
+
+- `-u`：対象URL（GETで狙う場合は `?id=1` ごとここに含める）
+- `--data`：POSTで送るボディ（ログインフォームなど）
+- `--batch`：対話プロンプトを自動でデフォルト回答にする
+- `--level` / `--risk`：テストの網羅度とリスクを上げる（上げるほど時間・リクエスト数も増える）
+
+---
+
+## sqlmap で深掘りする流れ（参考）
+
+```bash
+--dbs                # データベース一覧
+-D <db名> --tables   # テーブル一覧
+-T <table名> --dump  # 中身を取得
+```
+
+<div class="danger">
+
+構文の意味を理解するところまで。
+**この学習用サイト以外に対して実行しないこと。**
+
+</div>
+
+---
+
+## ZAP の基本的な使い方（コマンドライン版）
+
+```bash
+docker run -t zaproxy/zap-stable zap-baseline.py \
+  -t https://対象URL -r report.html
+```
+
+- 今日はGUIで操作したが、**CI/CDに組み込む場合**はCLI版を使う
+- `-t`：対象URL　`-r`：出力するHTMLレポート
+
+---
+
+## baseline と full-scan の違い
+
+- `zap-baseline.py`：**受け身のスキャン**（攻撃を送らず通信を観察するだけ）
+- `zap-full-scan.py`：今日GUIで見せた Active Scan に近い（実際に攻撃を送るため負荷・影響が大きい）
+
+<div class="danger">
+
+対象URLは必ず **自分が許可を得ているサイト** に。
+第三者サイトへの実行は不正アクセスと見なされ得ます。
+
+</div>
+
+---
+
+## WAF（Web Application Firewall）とは
+
+<br>
+
+- リクエストの中身を見て、**よくある攻撃パターンに一致したら止める**仕組み
+- 代表的な方式が **シグネチャ型**：文字列パターンでの判定
+- SQL として意味が同じでも、**書き方を変えると検知パターンから外れる**ことがある
+
+<br>
+
+<div class="warning">
+
+これは特定の製品固有の弱点ではなく、
+シグネチャ型検知**全般に共通する限界**です。
+
+</div>
+
+---
+
+## tamper スクリプトとは
+
+<br>
+
+- sqlmap 公式が提供する、**ペイロードを機械的に書き換える**オプション群
+- `--tamper=<名前>`（複数はカンマ区切りで同時指定可能）
+- 目的は「SQLとしての意味は変えずに、見た目の文字列だけ変える」こと
+
+<br>
+
+<div class="warning">
+
+以降で紹介するのは sqlmap 公式ドキュメントに載っている
+**一般公開されている効果の解説**です。
+
+</div>
+
+---
+
+## 代表的な tamper と効果・原理
+
+| tamper 名 | 書き換え内容 | 回避の原理 |
+| --- | --- | --- |
+| `space2comment` | 半角スペース → `/**/` | 「スペース+キーワード」型シグネチャの回避 |
+| `randomcase` | キーワードの大小文字をランダム化（`SeLeCt`） | 大文字小文字を区別する単純一致の回避 |
+| `charencode` | 文字を `%xx` にURLエンコード | 生文字列でのパターン一致の回避 |
+| `equaltolike` | `=` を `LIKE` に置換 | `=`を含むシグネチャの回避 |
+
+<small>いずれも sqlmap の効果の説明であり、SiteGuard等の特定WAFで実際に通ることを検証したものではありません。</small>
+
+---
+
+## 対処法（WAF／アプリ側）
+
+| 攻撃側の手口 | 防御側の対処 |
+| --- | --- |
+| スペース→コメント置換 | コメントも空白と同義に**正規化**してから照合 |
+| 大小文字ランダム化 | 大文字小文字を無視して照合（normalize） |
+| URLエンコード | デコードしてから照合（多重デコードも考慮） |
+| `=`→`LIKE`置換 | 文字列一致でなく **SQL構文を解析**して判定 |
+
+<div class="danger">
+
+これらはWAFのルール強化で軽減できますが、**根本対策ではありません**。
+最終的に効くのは、今日一貫して見てきた **プレースホルダ** です。
+
+</div>
+
+---
+
+## なぜライブ実演をしないか
+
+<br>
+
+- 検証用に借りているサーバーの WAF が **AI型・振る舞い学習型** の場合、
+  ON/OFF の切り替えや擬似攻撃の送信が
+  **想定外の検知・自動遮断・アカウント制限**を招く可能性がある
+- 本講座の目的は「防御力の向上」であり、
+  WAF 回避手法そのものの検証・提供は目的の範囲を超える
+
+---
+
+## TIPSのまとめ
+
+<br>
+
+- WAF は有効な防御層の **一つ**であり、**唯一の防御ではない**
+- シグネチャ回避の手口が存在する以上、
+  最終的に効くのは **入力を安全に扱うコード自体（プレースホルダ）**
+
+<br>
+
+<div class="poc">
+
+本編の結論と同じ場所に着地します。
+
+</div>
+
+---
+
 ## Q & A
 
 <br>
@@ -1285,4 +1480,4 @@ $r = $stmt->fetch();
 
 <br>
 
-<small>教材：`sandbox/sqli-training-site/`　脆弱版 `:5000` ／ 修正版 `:5010`</small>
+<small>教材：`https://hifumi-123coltd.holy.jp/sqli-training-site-php/`　脆弱版 `/vuln/` ／ 修正版 `/secure/`</small>

@@ -3,7 +3,7 @@ marp: true
 theme: default
 paginate: true
 header: "SQLインジェクション講座"
-footer: "© 2026"
+footer: "© <開催年>"
 style: |
   section {
     font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
@@ -57,7 +57,7 @@ style: |
 
 <br>
 
-2026年7月　前半（50分）
+<開催年月>　前半（50分）
 
 ---
 
@@ -136,7 +136,7 @@ style: |
 
 ## 🧪 実演（講師）
 
-1. `http://127.0.0.1:5000/login` を開く
+1. `https://hifumi-123coltd.holy.jp/sqli-training-site-php/vuln/login` を開く
 2. ユーザー名に `admin' #` と入力
 3. パスワードは何でも良い
 4. ログインに成功する
@@ -228,7 +228,7 @@ style: |
 - 架空の **社内 CRM / EC 管理システム**
 - 実在の個人情報は含まれません
 - SQLインジェクション演習のためだけに存在します
-- ソース：`sandbox/sqli-training-site/`
+- ソース：`sandbox/sqli-training-site-php/`
 
 ---
 
@@ -236,8 +236,8 @@ style: |
 
 | 種類 | URL | 説明 |
 | --- | --- | --- |
-| 脆弱版 `app_vulnerable.php` | `http://127.0.0.1:5050` | わざと脆弱に作った |
-| 修正版 `app_secure.php` | `http://127.0.0.1:5010` | 修正済み |
+| 脆弱版 `app_vulnerable.php` | `https://hifumi-123coltd.holy.jp/sqli-training-site-php/vuln` | わざと脆弱に作った |
+| 修正版 `app_secure.php` | `https://hifumi-123coltd.holy.jp/sqli-training-site-php/secure` | 修正済み |
 
 <br>
 
